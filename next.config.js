@@ -1,7 +1,3 @@
-const nextConfig = {
-  output: "export",
-  basePath: "/nextjs-projects",
-  assetPrefix: "/nextjs-projects/",
-};
+const nextConfig = {};
 
 module.exports = nextConfig;
