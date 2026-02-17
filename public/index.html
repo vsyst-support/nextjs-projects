@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clipboard App</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="drawer-open">
+    <div id="drawer" class="open">
+      <div class="drawer-header">
+        <h3 class="h3">Filter Tags</h3>
+        <button
+          class="manage-tags-btn"
+          title="Manage Tags"
+          aria-label="Manage Tags"
+          onclick="goTags()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+          </svg>
+        </button>
+      </div>
+      <div id="drawerFilterTags"></div>
+
+      <button id="clearAllBtn" class="drawer-clear-btn">
+        Clear All Filters
+      </button>
+    </div>
+
+    <button id="drawerToggle" onclick="toggleDrawer()">&#9776;</button>
+
+    <div class="container">
+      <div class="page-header">
+        <div class="header-left">
+          <h1>Clipboard App</h1>
+          <button id="addBtn" class="blue-btn" title="Add Clipboard" aria-label="Add Clipboard">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+            </svg>
+          </button>
+        </div>
+        <div class="header-right">
+          <div class="search-wrapper row_apart">
+            <div id="activeTagFilters"></div>
+            <div class="search-box">
+              <input
+                id="searchInput"
+                placeholder="Search by title, text or tag..."
+              />
+              <span id="clearSearch">✖</span>
+            </div>
+            <div class="filter-block" style="margin-left: 40px">
+              <div class="date-row">
+                <label>
+                  <span class="right">From</span>
+                  <input type="date" id="startDate" />
+                </label>
+
+                <label>
+                  <span class="right">To</span>
+                  <input type="date" id="endDate" />
+                </label>
+              </div>
+            </div>
+            <div class="filter-block">
+              <div>Sort By</div>
+              <select id="sortBy">
+                <option value="date_desc" selected>Newest</option>
+                <option value="date_asc">Oldest</option>
+                <option value="alpha_asc">A to Z</option>
+                <option value="alpha_desc">Z to A</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="top-actions"></div>
+
+      <div id="clipboardsContainer"></div>
+    </div>
+
+    <div id="tagsModalOverlay" class="tags-modal-overlay" aria-hidden="true">
+      <div class="tags-modal" role="dialog" aria-modal="true" aria-labelledby="tagsModalTitle">
+        <div class="tags-modal-header">
+          <h2 id="tagsModalTitle">Tags</h2>
+          <button id="closeTagsModalBtn" class="tags-modal-close-btn" aria-label="Close tags modal">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+            </svg>
+          </button>
+        </div>
+        <div class="tags-modal-divider"></div>
+        <div class="tags-modal-body">
+          <div class="tags-modal-form-row">
+            <input id="tagsModalName" placeholder="Tag name" />
+            <input id="tagsModalColor" type="color" value="#00c853" />
+          </div>
+          <div class="tags-modal-actions">
+            <button id="tagsModalDeleteBtn" class="tags-modal-delete-btn">Delete</button>
+            <button id="tagsModalSaveBtn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
