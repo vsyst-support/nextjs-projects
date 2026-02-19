@@ -137,6 +137,7 @@ function createClipboard(
   createdAt = null,
   tags = [],
 ) {
+  text = sanitizeClipboardText(text);
   const wrapper = document.createElement("div");
   wrapper.className = "clipboard clipboard-card";
   if (!id) {
@@ -176,9 +177,10 @@ function createClipboard(
 
   function renderViewContent(currentTitle, currentText) {
     const cleanTitle = (currentTitle || "").trim();
+    const cleanText = sanitizeClipboardText(currentText || "");
     viewTitle.textContent = cleanTitle;
     viewTitle.style.display = cleanTitle ? "block" : "none";
-    messageDiv.innerHTML = nl2br(currentText || "");
+    messageDiv.innerHTML = nl2br(cleanText);
   }
 
   renderViewContent(title, text);
@@ -193,6 +195,25 @@ function createClipboard(
   editable.contentEditable = false; // 🔒 locked initially
 
   editable.textContent = text;
+  editable.addEventListener("paste", (e) => {
+    // Keep pasted content plain text (no hidden href from rich links).
+    e.preventDefault();
+    const plainText = (e.clipboardData || window.clipboardData).getData(
+      "text/plain",
+    );
+    if (document.queryCommandSupported("insertText")) {
+      document.execCommand("insertText", false, plainText);
+      return;
+    }
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(document.createTextNode(plainText));
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
 
   // --- TAGS CONTAINER ---
   const tagsContainer = document.createElement("div");
@@ -337,7 +358,7 @@ function createClipboard(
   saveCopyBtn.onclick = async (e) => {
     e.stopPropagation(); // prevent blur conflicts
 
-    const content = getEditableText(editable);
+    const content = getClipboardCopyText(editable, messageDiv);
 
     const titleText = titleInput.value.trim();
     if (!content.replace(/\s/g, "") && !titleText) return;
@@ -382,7 +403,11 @@ function createClipboard(
 
       disableEditMode();
     } else {
-      await navigator.clipboard.writeText(content);
+      const copied = await copyTextToClipboard(content);
+      if (!copied) {
+        alert("Copy failed. Please allow clipboard permission and try again.");
+        return;
+      }
       alert("Copied to clipboard!");
     }
   };
@@ -515,7 +540,7 @@ function createClipboard(
     titleInput.tabIndex = 0;
     titleInput.style.pointerEvents = "auto";
 
-    editable.contentEditable = true;
+    editable.contentEditable = "plaintext-only";
 
     tagPickerDiv.style.pointerEvents = "auto";
     tagPickerDiv.style.opacity = "1";
@@ -924,8 +949,90 @@ function getEditableText(el) {
   // Remove nbsp
   html = html.replace(/&nbsp;/g, " ");
 
+  // Strip remaining tags (for example <a href="...">text</a>) and keep visible text.
+  const temp = document.createElement("div");
+  temp.innerHTML = html;
+  const text = (temp.textContent || "").replace(/\u00A0/g, " ");
+
   // Preserve vertical spacing
-  return html.replace(/[ \t]+$/gm, "").trimEnd();
+  return sanitizeClipboardText(
+    text
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/[ \t]+$/gm, "")
+    .trimEnd(),
+  );
+}
+
+function getClipboardCopyText(editableEl, viewEl) {
+  const editableText = getEditableText(editableEl);
+  if (editableText && editableText.trim()) return editableText;
+  return sanitizeClipboardText((viewEl?.innerText || "").trim());
+}
+
+async function copyTextToClipboard(text) {
+  const value = String(text || "");
+  if (!value) return false;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  } catch (_) {
+    // Fallback below when Clipboard API is blocked/unavailable.
+  }
+
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    textarea.style.pointerEvents = "none";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    if (ok) return true;
+  } catch (_) {
+    // Try final fallback below.
+  }
+
+  try {
+    const onCopy = (e) => {
+      e.preventDefault();
+      e.clipboardData.setData("text/plain", value);
+    };
+    document.addEventListener("copy", onCopy, { once: true });
+    const ok = document.execCommand("copy");
+    document.removeEventListener("copy", onCopy);
+    return ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+function sanitizeClipboardText(str) {
+  if (!str) return "";
+  let text = String(str).replace(/\u00A0/g, " ");
+
+  // If any HTML-like markup is present, convert it to visible plain text.
+  if (/[<>]/.test(text)) {
+    const htmlish = text
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/div>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<div[^>]*>/gi, "")
+      .replace(/<p[^>]*>/gi, "");
+
+    const temp = document.createElement("div");
+    temp.innerHTML = htmlish;
+    text = temp.textContent || "";
+  }
+
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
 
 
